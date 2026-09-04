@@ -33,4 +33,4 @@
 - 节流：每请求 sleep 0.35s（Notion ~3 rps）；429 退避重试 3 次
 - 幂等：同 run_id 重跑 → "新增 0，更新 N"
 - **顺序保证**：`write_local.py` 先于 `notion_sync.py`——Notion 失败不吃掉本地报告
-- token：`~/.hermes/.env` 的 `NOTION_TOKEN`，hermes 透传进 terminal 沙箱，**绝不打印**
+- token：环境变量 `NOTION_TOKEN`（用户机器级 `setx` 设置 + 重启 Hermes desktop 继承；脚本从 `os.environ` 读取），**绝不打印**。⚠️ 不要在 SKILL.md frontmatter 声明 `required_environment_variables`——实测 hermes desktop 对缺失变量强制提示且无法跳过，会卡死加载（2026-09-04）

@@ -3,7 +3,7 @@
   --check-auth                       verify NOTION_TOKEN (never printed)
   --base-dir D --run-id R --parent-id <32hex> [--database-id <id>] [--no-update]
 
-Secrets: NOTION_TOKEN arrives via hermes .env passthrough; NEVER printed or logged.
+Secrets: NOTION_TOKEN arrives via machine env var (setx + Hermes restart); NEVER printed or logged.
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ PROPS = {
 def _client():
     token = os.environ.get("NOTION_TOKEN")
     if not token:
-        print("NOTION_TOKEN: missing (write it to ~/.hermes/.env)")
+        print("NOTION_TOKEN: missing (set machine env var: setx NOTION_TOKEN \"ntn_...\", then restart Hermes desktop)")
         raise SystemExit(3)
     from notion_client import Client
     return Client(auth=token)

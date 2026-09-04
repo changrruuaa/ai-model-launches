@@ -5,14 +5,13 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.1.0
+version: 1.1.1
 author: chang
 license: MIT
 platforms: [windows]
-required_environment_variables:
-  - name: NOTION_TOKEN
-    prompt: Notion internal integration token（ntn_ 开头）
-    help: 在 notion.so/profile/integrations 创建 Internal Integration 并授予父页面访问
+# 🚨 不要在 frontmatter 声明 required_environment_variables：
+#    实测 hermes desktop 对声明的缺失变量强制提示且无法跳过，会卡死整个 skill 加载。
+#    Notion token 改为运行时探测（Step 0 --check-auth，无 token 静默降级为仅本地）。
 metadata:
   hermes:
     tags: [ai, research, twitter, monitoring]
@@ -91,7 +90,7 @@ metadata:
 
 1. 读 config 注入值。`base_dir` 为空 → 追问用户（Windows 路径），并提示写入 `~/.hermes/config.yaml` 的 `skills.config.base_dir` 持久化（否则产物落临时目录且每次都问）。`notion_enabled=true` 且 `notion_parent_page_id` 为空 → 同样追问
 2. `python "${HERMES_SKILL_DIR}\scripts\check_env.py"` → 退出码 12 → 按提示 `python -m pip install <缺失包>` 后重试
-3. Notion 启用时：`python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --check-auth` → exit 3 → 提示写 `~/.hermes/.env` 的 `NOTION_TOKEN=...`，本 run 先仅本地（notion_sync 全程跳过）
+3. Notion 启用时：`python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --check-auth` → exit 3 = 未配置 token → **静默降级为仅本地**（notion_sync 全程跳过，不提示不阻塞）。配置方法（一次性，用户手动）：管理员/普通终端执行 `setx NOTION_TOKEN "ntn_你的token"` 后**重启 Hermes desktop**（子进程继承用户环境变量）
 4. cua attach + 登录态检查（**先导航、后验登录态**——cua_driver 在非 x.com 页面无法返回登录状态；实测工具名，细则见 cua-recipes.md）：
    ```
    computer_use list_apps                                        # 找 chrome.exe pid
