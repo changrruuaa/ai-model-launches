@@ -1,0 +1,20 @@
+{
+  "run_id": "2026-09-04T0930+0800",
+  "created_at": "2026-09-04T09:30:00+08:00",
+  "window": {"days": 7, "since": "2026-08-29T00:00:00+08:00", "until": "2026-09-04T09:30:00+08:00"},
+  "accounts": {
+    "main": [
+      {"handle": "AIatMeta", "company": "Meta AI", "status": "ok", "rounds": 2, "fetched": 5, "in_window": 3, "attempts": 1, "notes": ""},
+      {"handle": "OpenAI", "company": "OpenAI", "status": "ok", "rounds": 3, "fetched": 9, "in_window": 4, "attempts": 1, "notes": ""},
+      {"handle": "deepseek_ai", "company": "DeepSeek", "status": "failed", "rounds": 1, "fetched": 0, "in_window": 0, "attempts": 2, "notes": "nav-timeout after retry"},
+      {"handle": "claudeai", "company": "Anthropic", "status": "ok", "rounds": 1, "fetched": 3, "in_window": 2, "attempts": 1, "notes": ""}
+    ],
+    "thirdparty": [
+      {"handle": "arena", "company": "Arena", "status": "ok", "rounds": 1, "fetched": 4, "in_window": 4, "attempts": 1, "notes": ""},
+      {"handle": "ArtificialAnlys", "company": "Artificial Analysis", "status": "ok", "rounds": 1, "fetched": 3, "in_window": 3, "attempts": 1, "notes": ""}
+    ]
+  },
+  "stages": {"prefilter": {"candidates": 5, "thirdparty": 6, "noise_dropped": 2}, "detail": {"merged": 3}, "classify": {"mode": "api", "model": "claude-haiku-4-5", "items": 11}, "verify": null, "cross_check": {"launches": 3, "signals": 2}, "images": {"downloaded": 4, "failed": 0}, "local_report": null, "notion": null},
+  "incidents": [{"type": "window-lost", "account": "OpenAI", "at": "2026-09-04T09:41:00+08:00", "detail": "recovered on attempt 1"}],
+  "database_id": null
+}

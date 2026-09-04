@@ -1,0 +1,8 @@
+{
+  "stage": "thirdparty",
+  "comment": "第三方信号账号：榜单/基准信息源，用于 Step 3 小厂模型发现与 Step 5 交叉验证",
+  "accounts": [
+    {"handle": "arena", "company": "Arena"},
+    {"handle": "ArtificialAnlys", "company": "Artificial Analysis"}
+  ]
+}

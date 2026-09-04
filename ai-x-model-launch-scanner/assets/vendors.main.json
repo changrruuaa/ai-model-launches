@@ -1,0 +1,20 @@
+{
+  "stage": "main",
+  "comment": "14 大厂主账号；公司名用于报告分组与 Notion Company 字段。来源：搜索目标厂家清单-2026-09-02.md",
+  "accounts": [
+    {"handle": "OpenAI", "company": "OpenAI"},
+    {"handle": "claudeai", "company": "Anthropic"},
+    {"handle": "GoogleDeepMind", "company": "Google DeepMind"},
+    {"handle": "SpaceXAI", "company": "xAI"},
+    {"handle": "deepseek_ai", "company": "DeepSeek"},
+    {"handle": "Alibaba_Qwen", "company": "Alibaba Qwen"},
+    {"handle": "TencentHunyuan", "company": "Tencent Hunyuan"},
+    {"handle": "Kimi_Moonshot", "company": "Moonshot Kimi"},
+    {"handle": "Zai_org", "company": "Zhipu GLM"},
+    {"handle": "AIatMeta", "company": "Meta AI"},
+    {"handle": "StabilityAI", "company": "Stability AI"},
+    {"handle": "MiniMax_AI", "company": "MiniMax"},
+    {"handle": "dreamina_ai", "company": "ByteDance Dreamina"},
+    {"handle": "XiaomiMiMo", "company": "Xiaomi MiMo"}
+  ]
+}

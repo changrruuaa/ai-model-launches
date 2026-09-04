@@ -1,0 +1,120 @@
+{
+  "handle": "OpenAI",
+  "company": "OpenAI",
+  "rounds": 7,
+  "scan_timestamp": "2026-09-04T15:31:50",
+  "source": "cua_browser_snapshot p2/p3/p4/p5/p6/p7 on x.com/OpenAI (maximized Chrome window, zoomed=True)",
+  "scroll_method": "cua_browser_pointer (CDP Input.dispatchMouseEvent, background mode, trusted_input)",
+  "login_state": "confirmed (URL x.com/home then x.com/OpenAI; user @changrruaa logged in)",
+  "tweets_in_scope_this_week": [
+    {
+      "status_index": 1,
+      "status_id": "2095595741528125780",
+      "pinned": true,
+      "time_display": "11h ago / 2026-09-04 03:32 UTC",
+      "text": "This is GPT-6 Astra. Anything you can do on a computer, Astra can do for you. Fast.",
+      "media": "embedded_video (2:32)",
+      "engagement_snapshot_growth": [
+        {"snapshot": "p2", "replies": 4637, "retweets": 33104, "likes": 194201, "bookmarks": 53654, "views": 46683600},
+        {"snapshot": "p3", "replies": 4645, "retweets": 33207, "likes": 194817, "bookmarks": 53654, "views": 46916119},
+        {"snapshot": "p4", "replies": 4645, "retweets": 33283, "likes": 195173, "bookmarks": 53654, "views": 47051699},
+        {"snapshot": "p5", "replies": 4661, "retweets": 33327, "likes": 195341, "bookmarks": 53654, "views": 47139998},
+        {"snapshot": "p8 (detail, prior session)", "replies": 4526, "retweets": 32131, "likes": 188956, "bookmarks": 53987, "views": 44634662}
+      ],
+      "detail_url": "https://x.com/OpenAI/status/2095595741528125780"
+    }
+  ],
+  "tweets_seen_post_pinned_scroll": [
+    {
+      "date": "Aug 14",
+      "text": "Previewing Ultrafast mode: GPT-5.6 Sol at up to 14x the speed",
+      "engagement": "798/1754/14966/4084763"
+    },
+    {
+      "date": "Aug 14",
+      "text": "Powered by @Cerebras, Ultrafast generates up to 750 tokens per second",
+      "engagement": "35/128/1890/280599"
+    },
+    {
+      "date": "Aug 13",
+      "text": "From assistance to execution: How enterprises put AI to work",
+      "engagement": "13/20/247/93804"
+    },
+    {
+      "date": "Aug 12",
+      "text": "Now in preview: The ChatGPT desktop app for Linux (video)",
+      "engagement": "796/1592/11743/2400524"
+    },
+    {
+      "date": "Aug 12",
+      "text": "The ChatGPT desktop app is now available in preview for desktop variants of these Linux distributions (Ubuntu/Debian/Fedora)",
+      "engagement": "108/120/918/173347"
+    },
+    {
+      "date": "Aug 11",
+      "text": "We are expanding our cybersecurity initiative Daybreak and introducing GPT-5.6-Cyber, a new model for advanced, authorized cybersecurity work",
+      "engagement": "473/1071/7617/2272123"
+    },
+    {
+      "date": "Aug 11",
+      "text": "Daybreak Blue provides access to frontier models, including GPT-5.6 Sol, with safeguards calibrated for broad defensive work",
+      "engagement": "16/24/677/104846"
+    },
+    {
+      "date": "Aug 8",
+      "text": "After evaluating one of our upcoming models, Astra, we're treating it as our first 'critical' model for cybersecurity under our Preparedness Framework",
+      "engagement": "825/1341/9629/2419180",
+      "note": "mentions upcoming Astra, but date Aug 8 (last week)"
+    },
+    {
+      "date": "Aug 8",
+      "text": "Quote Sam Altman @sama: astra is a powerful model and we are working to make it generally available",
+      "engagement": "38/9/389/217280"
+    },
+    {
+      "date": "Aug 7",
+      "text": "GPT-5.6 Sol now powers Instant and deep reasoning for Plus & Pro users; Free & Go users get unlimited text chats with GPT-5.6 Luna starting tomorrow",
+      "engagement": "1423/3041/21315/4546441"
+    },
+    {
+      "date": "Aug 5",
+      "text": "We are detailing two new incidents that occurred during external cyber evaluations",
+      "engagement": "506/682/4025/1630049"
+    },
+    {
+      "date": "Jul 30",
+      "text": "GPT-5.6 Sol has been used to solve open problems in mathematics; ARC-AGI-3 investigation",
+      "engagement": "394/813/9409/1231383"
+    },
+    {
+      "date": "Jul 30",
+      "text": "ARC-AGI-3 standard harness issue",
+      "engagement": "14/51/913/113505"
+    },
+    {
+      "date": "Jul 30",
+      "text": "How GPT-5.6 fuses frontier intelligence with frontier efficiency",
+      "engagement": "19/91/1657/394322"
+    },
+    {
+      "date": "Jul 30",
+      "text": "ChatGPT for Academic Researchers (10K -> 100K researchers, free access)",
+      "engagement": "677/1890/10199/3524597"
+    },
+    {
+      "date": "Jul 29",
+      "text": "Pacing the Frontier (pacingthefrontier.com)",
+      "engagement": "800/1028/4141/1995124"
+    }
+  ],
+  "openai_profile": {
+    "handle": "@OpenAI",
+    "verified": true,
+    "followers": "5.1M",
+    "tweet_count": 2101,
+    "following": 4,
+    "joined": "December 2015",
+    "website": "openai.com",
+    "jobs_link": "openai.com/jobs"
+  }
+}

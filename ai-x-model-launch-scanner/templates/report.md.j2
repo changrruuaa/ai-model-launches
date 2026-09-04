@@ -1,0 +1,48 @@
+# AI 模型发布扫描 · {{ date }}
+> 窗口 {{ window.since }} ~ {{ window.until }} · 扫描 {{ n_accounts }} 个账号 · 抓取 {{ n_fetched }} 条 · 窗口内 {{ n_in_window }} 条 · 命中 launch {{ n_launches }} 条 · 第三方信号 {{ n_signals }} 条
+
+## 摘要
+{% for l in launches %}
+- **{{ l.model_name or "（未命名）" }}**（{{ l.company }}）— {{ l.one_line_cn }}　`{{ "%.0f"|format(l.confidence * 100) }}%`{% if l.release_verified %} ✓验证{% elif l.release_verified == false %} ⚠待核实{% endif %}{% if l.cross_verified %} ✓第三方确认{% endif %}
+{% else %}
+- 本窗口未发现模型发布
+{% endfor %}
+
+## 详情
+{% for company, items in by_company.items() %}
+### {{ company }}
+{% for l in items %}
+#### {{ l.model_name or "（未命名）" }}　`{{ "%.0f"|format(l.confidence * 100) }}%`
+- 时间：{{ l.created_at }} · [原推]({{ l.url }}){% if l.cross_verified %} · 第三方榜单确认{% endif %}{% if l.release_verified == false %} · ⚠ 待人工核实{% endif %}
+- 要点：
+{% for f in l.key_facts %}  - {{ f }}
+{% endfor %}{% if l.external_refs %}- 外部佐证：
+{% for r in l.external_refs %}  - {{ r }}
+{% endfor %}{% endif %}- 原文：
+> {{ l.text | replace("\n", "\n> ") }}
+
+{% endfor %}
+{% endfor %}
+
+## 第三方信号（@arena / @ArtificialAnlys）
+{% for s in signals %}
+- {{ s.model_name or "（榜单）" }}（{{ s.company }}）— {{ s.one_line_cn }} · [原推]({{ s.url }})
+{% else %}
+- 无
+{% endfor %}
+
+## 扫描健康度
+| 账号 | 公司 | 状态 | 轮数 | 抓取 | 窗口内 |
+|---|---|---|---|---|---|
+{% for a in health %}
+| @{{ a.handle }} | {{ a.company }} | {{ a.status }} | {{ a.rounds }} | {{ a.fetched }} | {{ a.in_window }} |
+{% endfor %}
+
+{% if failed_accounts %}> ⚠️ 以下账号无有效数据，**不代表该厂商没发布**：{{ failed_accounts|join(", ") }}
+{% endif %}
+{% if images %}
+## 图片（{{ images|length }} 张）
+{% for img in images %}- `{{ img }}`
+{% endfor %}{% endif %}
+---
+*由 ai-x-model-launch-scanner 生成于 {{ generated_at }} · 原始数据：`data/raw/{{ run_id }}/`*

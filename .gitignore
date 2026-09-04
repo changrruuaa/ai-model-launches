@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets & local runtime data (never commit)
+.secrets/
+*.session
+notion_token.txt
+.env
+
+# Run outputs (live in base_dir, not in the repo)
+data/
+runs/
+logs/
+
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+~$*

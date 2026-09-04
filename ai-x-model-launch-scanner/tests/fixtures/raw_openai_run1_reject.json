@@ -1,0 +1,39 @@
+{
+  "handle": "OpenAI",
+  "company": "OpenAI",
+  "rounds": 0,
+  "note": "X timeline scan SKIPPED (browser_consent_required). web_search fallback used.",
+  "tweets": [],
+  "external_sources": [
+    {
+      "url": "https://aichatdaily.com/ai-models/openai-releases-gpt-6-astra-calls-start-agi-era",
+      "title": "OpenAI releases GPT-6 Astra, calls it the start of the AGI era",
+      "summary": "OpenAI released GPT-6 Astra on September 3, 2026; president Greg Brockman said the model marks when AGI arrived. Astra is OpenAI's first model designated as meeting its critical cybersecurity capability threshold. Ships first to enterprise cybersecurity customers on Daybreak, then Plus/Pro/Business/Enterprise plus API and AWS.",
+      "publish_date": "2026-09-04"
+    },
+    {
+      "url": "https://fortune.com/2026/09/03/openai-debuts-gpt-6-astra-computer-use-greg-brockman-says-start-of-agi",
+      "title": "OpenAI launches GPT-6 Astra — Fortune",
+      "summary": "Frontier model with 'computer use' (navigate a computer like a human). Beats GPT-5.6 Sol and Claude Fable 5.1 across many tasks. ARC-AGI-3 98.6% (vs Sol 7.8%, Claude Opus 5 30%). ExploitGym 100%.",
+      "publish_date": "2026-09-03"
+    },
+    {
+      "url": "https://trendytechtribe.com/ai/gpt-6-astra-launch",
+      "title": "GPT-6 Astra — Price, Benchmarks, and Who Gets Access",
+      "summary": "API pricing $10/M input, $50/M output (same as Claude Fable 5.1; 2.5x GPT-5.6 Sol's promo rate $4/$20). Headline ARC-AGI-3 99.9% falls to 62.7% on benchmark's own Standard harness.",
+      "publish_date": "2026-09-03"
+    },
+    {
+      "url": "https://openai.com/index/pacing-model-development-cyber-capabilities/",
+      "title": "Pacing model development in an era of cyber-critical capabilities — OpenAI",
+      "summary": "OpenAI safety briefing; references upcoming model 'Astra'; strengthens monitoring/alignment/security for frontier models.",
+      "publish_date": "2026-08-18"
+    },
+    {
+      "url": "https://releasebot.io/updates/openai",
+      "title": "OpenAI Release Notes — Releasebot",
+      "summary": "Sep 3, 2026: ChatGPT introduces GPT-6 Astra. Aug 31, 2026: pronunciation tap-to-hear (not an LLM launch).",
+      "publish_date": "2026-09-03"
+    }
+  ]
+}

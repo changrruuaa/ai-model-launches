@@ -1,0 +1,39 @@
+{
+  "handle": "AIatMeta",
+  "company": "Meta AI",
+  "rounds": 2,
+  "tweets": [
+    {
+      "status_id": "2095234385129963666",
+      "text": "Introducing Muse Spark 1.3 — our new open multimodal model. 8B params, Apache 2.0, now available for download. Blog: https://ai.meta.com/blog/muse-spark",
+      "time_raw": "Wed Sep 03 10:12:33 +0000 2026",
+      "engagement_raw": "81 replies, 328 reposts, 2448 likes, 215 bookmarks, 182331 views",
+      "media": ["https://pbs.twimg.com/media/muse_spark.jpg"],
+      "pinned": true
+    },
+    {
+      "status_id": "2095234385129963667",
+      "text": "Muse Voice Transcribe is now live for all developers. 30x realtime, 99.1% accuracy on the WildArtifactBench. Try it: https://ai.meta.com/voice",
+      "time_raw": "Wed Sep 02 08:00:00 +0000 2026",
+      "engagement_raw": "40 replies, 102 reposts, 890 likes, 1.2K bookmarks, 55,210 views",
+      "media": [],
+      "pinned": false
+    },
+    {
+      "status_id": "2095234385129963668",
+      "text": "WildArtifactBench results are in — 12.4% improvement over the previous SOTA on multimodal artifact detection.",
+      "time_raw": "Fri Aug 21 14:30:00 +0000 2026",
+      "engagement_raw": "12 replies, 30 reposts, 210 likes, 18 bookmarks, 8,001 views",
+      "media": [],
+      "pinned": false
+    },
+    {
+      "status_id": "2095234385129963669",
+      "text": "RT @AIatMeta: We are hiring research engineers in Menlo Park. Come build with us!",
+      "time_raw": "Tue Sep 02 17:45:00 +0000 2026",
+      "engagement_raw": "2 replies, 5 reposts, 40 likes, 3 bookmarks, 900 views",
+      "media": [],
+      "pinned": false
+    }
+  ]
+}
