@@ -64,7 +64,7 @@ computer_use cua_browser_state(...)                        # ② 再判登录态
 
 ```
 computer_use focus_app(pid)                                          # 失败 → 流程 W
-computer_use cua_browser_navigate(url="https://x.com/<handle>", ...) # terminal sleep 2-3（实测 X 渲染需 2-3s）
+computer_use cua_browser_navigate(url="https://x.com/<handle>", ...) # ⚠️ handle 无 @（带 @/经搜索框输入 → x.com/search?q=<handle>，2026-09-05 实测；误入搜索页不进流程 W，直接正确 URL re-navigate ≤2 次，计 per-account 重试预算）；terminal sleep 2-3（实测 X 渲染需 2-3s）
 # 第 1 轮（无需滚动）：
 computer_use cua_browser_state(...)   # snapshot：AX tree（status_id href / engagement aria-label / photo link / time）+ 可读文本 + "Pinned"/"置顶"
 # 第 R 轮（R=2..4）：
@@ -114,7 +114,7 @@ computer_use cua_browser_state(...)    # 详情页不截断（解 B2）；提取
 
 ## 4. 流程 W — 窗口丢失容错
 
-**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**（R3））；snapshot 的 title/URL 与预期不符；连续 2 次调用返回空。
+**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**（R3））；snapshot 的 title/URL 与预期不符（结果 URL 为 `x.com/search?q=...` 除外——走 URL 格式自愈，不进 W）；连续 2 次调用返回空。
 
 **恢复（≤2 次，每次）**：
 1. `computer_use list_apps` → 重新确认 pid
@@ -157,4 +157,5 @@ computer_use focus_app(<hermes_desktop_pid>)
 - Chrome 自动翻译弹窗挡住 X tab（D12）→ 引导用户关闭自动翻译
 - 置顶视频推文占满 viewport 预算（R4）→ 必须滚动
 - 旧工具集遗留（hermes/WSL 时代）：`page query_dom` 的 `[data-testid=...]` 在 Windows UIA 不可达、`page execute_javascript` 被 standard daemon 拒——新 API（cua_browser_*）已无这些路径，但不要混用旧名
+- 带 @ 的 profile URL（`x.com/@handle`）或经 X 搜索框定位账号 → 被解释成 `x.com/search?q=<handle>` 搜索 fallback（2026-09-05 实测）→ 一律 navigate `https://x.com/<handle>`（无 @）；误入搜索页不进流程 W，直接正确 URL re-navigate ≤2 次（计 per-account 重试预算，与下一条"同一账号重试 ≤2 次"同池）
 - 同一账号重试 ≤2 次；任一 session-expired → 整体中止

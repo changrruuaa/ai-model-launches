@@ -5,7 +5,7 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.3.0
+version: 1.3.1
 author: chang
 license: MIT
 platforms: [windows]
@@ -130,12 +130,13 @@ metadata:
 2. 对批次内每账号执行 recipe（细则与 trap 见 `references\cua-recipes.md`）：
    ```
    computer_use focus_app(pid)                                            # 失败 → 流程 W
-   computer_use cua_browser_navigate(url="https://x.com/<handle>", ...)   # 等 terminal sleep 2-3
+   computer_use cua_browser_navigate(url="https://x.com/<handle>", ...)   # ⚠️ handle 无 @（带 @/经搜索框输入 → x.com/search?q=<handle>，2026-09-05 实测）；等 terminal sleep 2-3
    computer_use cua_browser_state(...)   # snapshot：AX tree（status_id href / engagement aria-label / photo link / time）+ 可读文本 + "Pinned"/"置顶"标记
    # 时间窗未覆盖 → 滚动一轮再来：
    computer_use cua_browser_pointer(x, y, delta_y=2000~4000)   # ⚠️ 唯一滚动路径；mutation 前必须 fresh state
    # terminal sleep 2-4 → cua_browser_state(...)（只提取新增 status_id）
    ```
+   - **URL 格式自愈**：snapshot 结果 URL 是 `x.com/search?q=...`（搜索 fallback 误入）→ 不进流程 W（窗口没问题，属 URL 格式错误）→ 立即用 `https://x.com/<handle>`（无 @）re-navigate，≤2 次（计 per-account 重试预算）
    - **时间窗全覆盖是硬要求**：终止条件 = 本轮最老一条推文 `created_at < since`，或 R=4 轮上限。宁可多滚，不得提前收手
    - **增量提取**：维护已见 status_id 集合，每轮只提取新增，追加进 raw JSON——也是流程 W 恢复后续扫的幂等基础
    - **滚动注意**：`delta_y` 建议 2000-4000（太小 X 不触发 IntersectionObserver 加载下一批）；`to_x/to_y` 仅用于 drag；置顶带视频推文会独占 ~300 节点 viewport 预算，必须滚动才能触发后续加载
@@ -155,7 +156,7 @@ metadata:
 ### Step 2 — 详情页深度抓取（≤ 5 min）
 
 1. `python "${HERMES_SKILL_DIR}\scripts\prefilter.py" --base-dir <base_dir> --run-id <run_id>` → `candidates.json`
-2. 逐候选（每会话 ≤15 个）：`cua_browser_navigate("https://x.com/<handle>/status/<id>")` + fresh `cua_browser_state`（详情页不截断，解 B2）→ 落盘 `raw_detail_<id>.json`：`{"status_id","text_full","media","external_links"}`；浏览器异常 → 流程 W
+2. 逐候选（每会话 ≤15 个）：`cua_browser_navigate("https://x.com/<handle>/status/<id>")` + fresh `cua_browser_state`（详情页不截断，解 B2；URL 同样 handle **无 @**——带 @ 会进搜索 fallback）→ 落盘 `raw_detail_<id>.json`：`{"status_id","text_full","media","external_links"}`；浏览器异常 → 流程 W
 3. `python "${HERMES_SKILL_DIR}\scripts\merge_detail.py" --base-dir <base_dir> --run-id <run_id>` → `detail_tweets.json`
 4. 预算用尽 → 跳过剩余，不阻塞
 
@@ -204,7 +205,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 
 ### 流程 W — 窗口丢失容错（Steps 1/2/3 所有浏览器调用的错误路径）
 
-**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**）；snapshot 的 title/URL 与预期 x.com/<handle> 不符；连续 2 次调用返回空。
+**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**）；snapshot 的 title/URL 与预期 x.com/<handle> 不符（结果 URL 为 `x.com/search?q=...` 除外——走 URL 格式自愈，不进 W）；连续 2 次调用返回空。
 
 **恢复（≤2 次，每次）**：
 1. `computer_use list_apps` → 重新确认 chrome.exe pid
@@ -234,6 +235,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 14. **登录态检查顺序**：非 x.com 页面拿不到登录态 → attach 后、W 恢复后**先导航到 x.com 再判登录态**；只看跳转 URL（`x.com/home`=已登录，`x.com` 登录页=未登录 → STOP，不代登录）
 15. **Chrome 自动翻译弹窗**会挡住 X tab → 引导用户关闭自动翻译或先手动关掉弹窗
 16. **置顶带视频推文独占 ~300 节点 viewport 预算**（X SPA 惰性加载）→ 不滚动就永远看不到后续推文，必须 scroll
+17. **profile URL 格式（2026-09-05 实测）**：账号定位一律 `cua_browser_navigate` 直达 `https://x.com/<handle>`——**handle 无 @**；带 @ 的路径或经 X 搜索框输入会被解释成 `x.com/search?q=<handle>` 搜索 fallback（**禁用搜索框/搜索页定位账号**）。检测结果 URL 是 `/search?q=` → 不进流程 W，立即用正确 URL re-navigate（≤2 次，计 per-account 重试）
 
 ## Verification
 

@@ -39,9 +39,10 @@ def _skeleton(run_id: str, days, since, until) -> dict:
 
 
 def _next_batch(report: dict, stage: str, batch_size: int) -> list[dict]:
-    retryable = ("pending", "in_progress", "failed")
+    # failed 仅在 attempts<2 时重入队（每账号 ≤2 次重试预算；≥2 为终态，见模块 docstring）
     queue = [a for a in report["accounts"][stage]
-             if a["status"] in retryable or (a["status"] == "failed" and a["attempts"] < 2)]
+             if a["status"] in ("pending", "in_progress")
+             or (a["status"] == "failed" and a["attempts"] < 2)]
     return queue[:batch_size]
 
 

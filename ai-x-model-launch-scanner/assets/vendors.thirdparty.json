@@ -1,6 +1,6 @@
 {
   "stage": "thirdparty",
-  "comment": "第三方信号账号：榜单/基准信息源，用于 Step 3 小厂模型发现与 Step 5 交叉验证",
+  "comment": "第三方信号账号：榜单/基准信息源，用于 Step 3 小厂模型发现与 Step 5 交叉验证。handle 无 @ 前缀（URL 拼接用，禁带 @ 导航——会被 X 解释成搜索）",
   "accounts": [
     {"handle": "arena", "company": "Arena"},
     {"handle": "ArtificialAnlys", "company": "Artificial Analysis"}

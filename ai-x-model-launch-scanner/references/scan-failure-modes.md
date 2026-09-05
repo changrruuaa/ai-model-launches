@@ -106,6 +106,7 @@ run 20260904-142109：consent 未授权 → timeline SKIPPED → agent 用 web_s
 | 巡检 exit 1 / 2 | Chrome 无可用 CDP 端口 / 未运行 | 🛑 STOP + `action_hint` 报告用户（H 章） |
 | 巡检 exit 3 | 巡检脚本内部错误 | 报告 stderr 内容；跳过巡检不阻塞主流程 |
 | daemon 不在（重启后空窗） | daemon 未被自动拉起；若 daemon 存活但未带 grant → mid-session 原地无解（G8），须先重启 Hermes desktop | **征得同意后**按 G8 `Start-Process` 自启带 `--grant` 的 daemon |
+| 结果 URL = `x.com/search?q=<handle>`（搜索 fallback） | URL 带 @ 或经 X 搜索框定位账号（2026-09-05 实测） | 立即 `navigate https://x.com/<handle>`（**无 @**）re-navigate，≤2 次（计 per-account 重试预算）；不进流程 W |
 
 ### G8. cua-driver daemon 生命周期与手动 grant attach（2026-09-05 实测）
 
