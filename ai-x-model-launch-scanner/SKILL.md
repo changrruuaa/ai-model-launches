@@ -5,7 +5,7 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.2.0
+version: 1.2.1
 author: chang
 license: MIT
 platforms: [windows]
@@ -112,7 +112,7 @@ metadata:
 6. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
 7. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
    - `browser_requires_setup: no owned endpoint` → 🛑 STOP，不 fallback 不重试
-   - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**
+   - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**；重启后 daemon 不会被自动拉起 → 可按 `references\scan-failure-modes.md` G8 自启带 `--grant` 的 daemon（进程级授权，一键脚本 `%USERPROFILE%\cua-attach-chrome.ps1`）
    - `wrong_target_refused` → `focus_app` 切焦点后重试 1 次；仍失败 → 建议用户只保留单一 X home 标签页后重跑
    - `browser_mutation_unproven` / `browser_verification_required` → 先做一次 fresh `cua_browser_state` 再重试原操作
    - `this session has ended` / 跨会话 MCP 断连 → 每个新 agent process 都要走一遍第 5 步完整 re-attach

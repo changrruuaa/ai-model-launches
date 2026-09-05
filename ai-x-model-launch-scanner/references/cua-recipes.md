@@ -28,6 +28,8 @@
 
 前置：`python "%USERPROFILE%\.hermes\tools\chrome_inspect.py"` 巡检 Chrome 实例（细则见 scan-failure-modes.md H 章；工具未部署则跳过）。
 
+**pid/hwnd 浮动（2026-09-05 实测）**：Chrome 每次启动 pid 与 MainWindowHandle 都会变（实测 pid 7504→16308→20088→8872），必须每次实查、**绝不缓存**；窗口过滤只认 `MainWindowHandle != 0`（Chrome 一次会启 8-10 个子进程，句柄全为 0——`!= 0` 即隐藏/后台窗口过滤器）。
+
 ```
 computer_use list_apps                                     # 找 chrome.exe pid
 computer_use list_windows(pid)                             # cheap：{title, window_id, bounds, is_on_screen, minimized}
@@ -50,7 +52,7 @@ computer_use cua_browser_state(...)                        # ② 再判登录态
 
 错误分支（实测错误码）：
 - `browser_requires_setup: no owned endpoint` → 🛑 STOP（不 fallback、不重试）
-- `browser_existing_profile_not_granted` → **征得用户同意后**写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**必须重启 Hermes desktop 才生效**（实测 2026-09-04：写后错误从 not_granted 变为可继续）
+- `browser_existing_profile_not_granted` → **征得用户同意后**写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**必须重启 Hermes desktop 才生效**（实测 2026-09-04：写后错误从 not_granted 变为可继续）；或重启后按 scan-failure-modes.md G8 `Start-Process` 自启带 `--grant` 的 daemon（进程级授权，不依赖 config）
 - `wrong_target_refused` → cua-driver 对 X SPA 的窗口 heuristic（"no exact New Tab button" 过严，0.23.2 已修部分）→ `focus_app` 后重试 1 次；仍失败建议用户只留单一 X home 标签页
 - 跨会话 MCP session 必断（R1/D10）→ 每个新 agent process 重走本节完整流程
 - cua-driver 升级断当前 MCP session（R1/D3）→ 只在无扫描时升级（`hermes computer-use install --upgrade`），升级后重启 Hermes desktop

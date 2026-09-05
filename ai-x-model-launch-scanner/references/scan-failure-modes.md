@@ -47,7 +47,7 @@ snapshot ~100 元素 0 article（@ChatGPTapp Sep 2 触发）。可能是 X 限�
 | 症状 | 编码 | 首选动作 |
 |---|---|---|
 | `no owned endpoint is available` + allow_launch hint | E1 | 🛑 STOP，不 fallback、不 isolated browser |
-| `browser_existing_profile_not_granted` / isolated 要求 | E2 | **征得同意后代写** `grant_existing_profile: true` + 重启 Hermes（见 G4） |
+| `browser_existing_profile_not_granted` / isolated 要求 | E2 | **征得同意后代写** `grant_existing_profile: true` + 重启 Hermes（见 G4）；或重启后按 G8 自启带 grant daemon |
 | `this session has ended` mid-batch | A2 | `start_session` 新 label → `browser_prepare` 重绑 |
 | `CDP DOM.getDocument timed out` mid-batch | A1 | 流程 W → 重试 1 次 → no-data |
 | 窗口被遮挡/最小化/切后台 | W | 流程 W（恢复 ≤2 次，2s 复验，失败立即报错） |
@@ -80,6 +80,7 @@ snapshot ~100 元素 0 article（@ChatGPTapp Sep 2 触发）。可能是 X 限�
 ### G4. consent 分支实测（修正旧 E2 规则）
 - 实测错误名 `browser_existing_profile_not_granted`（非旧文档的 `browser_consent_required`）
 - run1 中 agent 自行写 config.yaml 成功解锁（not_granted → 错误码变化确认生效）→ 现行规则：**征得用户明确同意后可代写**，写后提示重启 Hermes
+- 替代路径（2026-09-05）：重启 Hermes desktop 后 daemon 不会自动拉起 → 按 G8 `Start-Process` 自启带 `--grant existing-profile` 的 daemon（进程级授权，不依赖 config.yaml；同样须先征得用户同意）
 - `wrong_target_refused`（X SPA heuristic）缓解：`focus_app` 先行 + 单一 X home 标签页
 
 ### G5. 登录态与内容形态
@@ -104,6 +105,28 @@ run 20260904-142109：consent 未授权 → timeline SKIPPED → agent 用 web_s
 | `Connection closed`（MCP） | driver 升级/会话过期 | 重启 Hermes desktop / 新会话 re-attach |
 | 巡检 exit 1 / 2 | Chrome 无可用 CDP 端口 / 未运行 | 🛑 STOP + `action_hint` 报告用户（H 章） |
 | 巡检 exit 3 | 巡检脚本内部错误 | 报告 stderr 内容；跳过巡检不阻塞主流程 |
+| daemon 不在（重启后空窗） | daemon 未被自动拉起；若 daemon 存活但未带 grant → mid-session 原地无解（G8），须先重启 Hermes desktop | **征得同意后**按 G8 `Start-Process` 自启带 `--grant` 的 daemon |
+
+### G8. cua-driver daemon 生命周期与手动 grant attach（2026-09-05 实测）
+
+> 背景：hermes 拉起的 daemon **默认不传 `--grant`**，attach 用户日常 Chrome 会被 `browser_existing_profile_not_granted` 拒。要换成带 grant 的 daemon 无法原地替换（杀不死），只能在重启 Hermes desktop 后的空窗手动拉起。
+
+- **hermes 拉起的 daemon 杀不死**：`Stop-Process -Name cua-driver -Force` → hermes 立刻拉起新的；`taskkill /F /PID` → 权限不足（进程 token 在不同 session）；`psutil.Process(pid).kill()` → 调用方卡死 300s（复活机制死循环/死锁）。任何"stop + restart daemon"路径都不可行
+- **唯一换血窗口**：重启 Hermes desktop → daemon **不会**被自动拉起 → 此刻手动拉起（见下）
+- **手动启动唯一正解 = `Start-Process -WindowStyle Hidden`**：`subprocess.Popen` + `DETACHED_PROCESS`/`CREATE_NEW_PROCESS_GROUP` 在 MSYS bash 下常立刻挂掉或被父进程杀；Python subprocess 起的 daemon 起不来且 CommandLine 不可见；`Start-Process` 启动的在 PowerShell 进程空间存活、`Get-CimInstance` 能看到完整 CommandLine
+
+**四步流程**（一键脚本：仓库 `tools\cua-attach-chrome.ps1` → 部署 `copy tools\cua-attach-chrome.ps1 "%USERPROFILE%\cua-attach-chrome.ps1"`）：
+
+1. 起 daemon（`--grant` 是 **daemon 进程级 flag，不经过 config.yaml 检查**）：
+   ```
+   Start-Process -FilePath "$env:USERPROFILE\.cua-driver\packages\current\cua-driver.exe" -ArgumentList "serve","--grant","existing-profile","--permission-mode","standard" -WindowStyle Hidden
+   # 等 3-4s daemon listening
+   ```
+2. 验证带 grant：`Get-CimInstance Win32_Process` 查 cua-driver CommandLine，应含 `serve --grant existing-profile --permission-mode standard`
+3. 找已登录 Chrome（必须有可见窗口）：`Get-Process chrome | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1` → PID/HWND
+4. attach 直调 CLI（python stdin 发 JSON，避开 PowerShell 转义坑）：`cua-driver.exe call browser_prepare`，stdin `{"pid":<pid>,"window_id":<hwnd>,"strategy":{"kind":"existing_profile"}}` → 预期 `{"status":"ok","action":"attached_existing_profile",...,"endpoint_ownership":{"method":"devtools_active_ports_file",...}}`
+
+与 G4 的关系：G4 的 config.yaml 路径（同意 → 写 config → 重启）之外，重启后 daemon 未自动拉起时按本节自启带 grant daemon——不依赖 config.yaml 的替代授权路径（**仍须先征得用户同意**）。
 
 ## H. Chrome 进程/端口巡检（chrome_inspect.py，机器级工具）
 
