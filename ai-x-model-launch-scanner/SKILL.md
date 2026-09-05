@@ -5,7 +5,7 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.2.1
+version: 1.3.0
 author: chang
 license: MIT
 platforms: [windows]
@@ -51,6 +51,7 @@ metadata:
 
 **约束声明**（首次对话须告知用户）：
 - 扫描期间请保持 Chrome 在**主屏幕最上层**，不要最小化/遮挡；被切走会自动前置恢复（流程 W），持续遮挡会中止报错
+- 扫描结束或中止时会自动把窗口焦点**归还 hermes desktop**（焦点归还，见 `references\cua-recipes.md` §5；computer_use 断连时无法归还，报告会如实说明）
 - 建议用户**最大化 Chrome**（增大 pointer viewport 预算）并**关闭浏览器自动翻译**（弹窗会挡住 X tab）
 - 需要用户 Chrome 已登录 X（本 skill 不导 cookie、不代登录）
 - 上下文保护：每个扫描会话只扫 3 个账号（config `session_batch_size`），批次结束换新会话 `--resume` 续扫
@@ -111,6 +112,7 @@ metadata:
    ```
 6. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
 7. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
+   - **通用规则**：任何 🛑 STOP / 会话结束前先执行**焦点归还**（`references\cua-recipes.md` §5；computer_use 不可用则跳过并如实说明）
    - `browser_requires_setup: no owned endpoint` → 🛑 STOP，不 fallback 不重试
    - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**；重启后 daemon 不会被自动拉起 → 可按 `references\scan-failure-modes.md` G8 自启带 `--grant` 的 daemon（进程级授权，一键脚本 `%USERPROFILE%\cua-attach-chrome.ps1`）
    - `wrong_target_refused` → `focus_app` 切焦点后重试 1 次；仍失败 → 建议用户只保留单一 X home 标签页后重跑
@@ -147,8 +149,8 @@ metadata:
    ```
    然后 `python "${HERMES_SKILL_DIR}\scripts\parse_account.py" --base-dir <base_dir> --run-id <run_id> <handle>`
    → stdout 一行 `@OpenAI ok rounds=2 fetched=12 in_window=3 pinned=1`。exit 2 → 按提示修 raw 文件一次重跑；再失败 → `--mark-failed parse-failed`
-4. 失败标 `empty / rate-limited / nav-timeout / session-expired / parse-failed / window-lost-fatal` 入 run_report；每账号 ≤2 次重试；任一 `session-expired` → 整体中止
-5. **批次纪律**：每会话 ≤ `session_batch_size`（默认 3）账号且累计滚动轮数 ≤6；达到即收尾本会话，换新会话从第 1 步 `--resume` 续扫
+4. 失败标 `empty / rate-limited / nav-timeout / session-expired / parse-failed / window-lost-fatal` 入 run_report；每账号 ≤2 次重试；任一 `session-expired` → 整体中止（中止时执行**焦点归还**）
+5. **批次纪律**：每会话 ≤ `session_batch_size`（默认 3）账号且累计滚动轮数 ≤6；达到即收尾本会话，换新会话从第 1 步 `--resume` 续扫；收尾本会话时执行**焦点归还**（`references\cua-recipes.md` §5）
 
 ### Step 2 — 详情页深度抓取（≤ 5 min）
 
@@ -161,6 +163,7 @@ metadata:
 
 `python "${HERMES_SKILL_DIR}\scripts\plan_scan.py" --stage thirdparty --base-dir <base_dir> --run-id <run_id>`
 然后对 @arena、@ArtificialAnlys 复用 Step 1 recipe（同会话同 tab，切账号 ≈3 calls）。标记 `is_third_party=true`（parse_account 自动）。
+浏览器阶段到此结束 → 执行**焦点归还**（`references\cua-recipes.md` §5）；此后如需再用浏览器（如 Step 6 可选截图）先 `focus_app` 重新前置 Chrome。
 ### Step 4a — LLM 分类（先于 4b/5/6）
 
 `python "${HERMES_SKILL_DIR}\scripts\classify.py" --base-dir <base_dir> --run-id <run_id>`
@@ -196,6 +199,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 - **write_local 必须先于 notion_sync**——Notion 失败不吃掉本地结果
 - 报告：`<base_dir>\reports\YYYY-MM-DD-model-launches.md`（同日重跑 -2 后缀不覆盖）
 - Notion 自动建库/去重/更新（细则 `references\notion-schema.md`）；`object_not_found` → 用户在父页面 Connections 添加 integration
+- 报告完成后执行**焦点归还**（`references\cua-recipes.md` §5；computer_use 不可用则如实说明"焦点未归还"）
 - 最后按 Verification 模板汇报
 
 ### 流程 W — 窗口丢失容错（Steps 1/2/3 所有浏览器调用的错误路径）
@@ -210,7 +214,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 
 **复验**：`terminal sleep 2` → `list_windows` 复验；通过但下个实际调用仍失败 → 升级 `cua_browser_state` 复验。
 
-**裁决**：通过 → 记 incident **继续当前账号**（增量去重幂等）；2 次失败 → **立即停**：标 `window-lost-fatal`、结束会话、报错"请将 Chrome 置于主屏幕最上层后重跑，自动 --resume 续扫"；不做第 3 次。会话内 ≥2 账号 fatal → run 中止。
+**裁决**：通过 → 记 incident **继续当前账号**（增量去重幂等）；2 次失败 → **立即停**：标 `window-lost-fatal`、结束会话、报错"请将 Chrome 置于主屏幕最上层后重跑，自动 --resume 续扫"；不做第 3 次。会话内 ≥2 账号 fatal → run 中止。结束会话/run 中止时执行**焦点归还**（`references\cua-recipes.md` §5）。
 
 ## Pitfalls
 
@@ -226,7 +230,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 10. Notion `object_not_found` → 父页面没 Share 给 integration → Connections 添加
 11. **Windows 编码**：落盘 JSON 强制 UTF-8 无 BOM；脚本读写显式 `encoding="utf-8"`；终端中文先 `PYTHONIOENCODING=utf-8`
 12. **上下文保护**：分批会话（默认 3 账号/会话、滚动 ≤6 轮）、即扫即弃、分类不混入扫描会话、>120 条切 --api、每条验证 ≤2 次搜索；压缩/中断后 `plan_scan.py --status --resume` 重新定位
-13. **窗口焦点**：cua_driver 对非主屏幕最上层窗口不可用 → 流程 W；恢复 ≤2 次，失败**立即报错**，绝不无限重试；复验用 `list_windows`（cheap）不用 `get_window_state`
+13. **窗口焦点**：cua_driver 对非主屏幕最上层窗口不可用 → 流程 W；恢复 ≤2 次，失败**立即报错**，绝不无限重试；复验用 `list_windows`（cheap）不用 `get_window_state`；扫描结束/中止时焦点归还 hermes desktop（`references\cua-recipes.md` §5）
 14. **登录态检查顺序**：非 x.com 页面拿不到登录态 → attach 后、W 恢复后**先导航到 x.com 再判登录态**；只看跳转 URL（`x.com/home`=已登录，`x.com` 登录页=未登录 → STOP，不代登录）
 15. **Chrome 自动翻译弹窗**会挡住 X tab → 引导用户关闭自动翻译或先手动关掉弹窗
 16. **置顶带视频推文独占 ~300 节点 viewport 预算**（X SPA 惰性加载）→ 不滚动就永远看不到后续推文，必须 scroll
@@ -243,4 +247,4 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 ⚠️ @deepseek_ai no-x-data —— 不代表该厂商没发布
 📄 报告：<base_dir>\reports\...  🖼️ images\（N 张）  🗃️ Notion：新增 a，更新 b
 ```
-- 断言：报告存在且含"无数据不等于没发布"段；`cross_checked.json` 的 launch 均带 `release_verified`（true/false/null）；本会话账号数 ≤ `session_batch_size`；**单账号总调用 ≤15**；raw 文件不含任何 web 来源字段
+- 断言：报告存在且含"无数据不等于没发布"段；`cross_checked.json` 的 launch 均带 `release_verified`（true/false/null）；本会话账号数 ≤ `session_batch_size`；**单账号总调用 ≤15**；raw 文件不含任何 web 来源字段；会话结束点已执行**焦点归还**（或记录失败/跳过原因）

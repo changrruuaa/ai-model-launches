@@ -2,7 +2,8 @@
 
 > 本文件是 SKILL.md Procedure 的工具级细则。所有签名与结论来自 2026-09-04 三轮 hermes 实测
 >（runs 20260904-142109 / 145545 / 153150，@OpenAI 单账号冒烟）+ hermes 端发现清单 D1-D16 / R1-R4。
-> **两条硬约束**：① cua_driver 要求目标窗口在**主屏幕最上层**；② cua_driver 在**非 x.com 页面无法返回登录状态**。
+> **三条硬约束**：① cua_driver 要求目标窗口在**主屏幕最上层**；② cua_driver 在**非 x.com 页面无法返回登录状态**；
+> ③ **抢焦点必还**——扫描结束/中止时把焦点归还 hermes desktop（§5）。
 
 ---
 
@@ -123,11 +124,32 @@ computer_use cua_browser_state(...)    # 详情页不截断（解 B2）；提取
 
 **复验**：`terminal sleep 2` → `list_windows` 复验；通过但下个实际调用仍失败 → 升级 `cua_browser_state` 复验。
 
-**裁决**：通过 → 记 incident 续扫（增量去重保证幂等）；2 次失败 → **立即**标 `window-lost-fatal`，结束会话，报错指引"Chrome 置于主屏幕最上层后重跑 --resume"；会话内 ≥2 账号 fatal → run 中止。
+**裁决**：通过 → 记 incident 续扫（增量去重保证幂等）；2 次失败 → **立即**标 `window-lost-fatal`，结束会话，报错指引"Chrome 置于主屏幕最上层后重跑 --resume"；会话内 ≥2 账号 fatal → run 中止。结束会话/run 中止时执行**焦点归还**（§5）。
 
 ---
 
-## 5. 已知 trap（不试）
+## 5. 焦点归还（扫描结束/中止时把焦点还给 hermes desktop）
+
+操控 Chrome 需要抢焦点（Chrome 置主屏幕最上层）；**错误或工作结束时必须把焦点归还 hermes desktop**（硬约束③）。
+`focus_app` 是通用窗口焦点 API（非 Chrome 专属）；hermes desktop 自己在 `list_apps` 中可见（2026-09-05 用户确认）。
+
+```
+computer_use list_apps                        # 重新实查 hermes desktop pid（不缓存，同 pid/hwnd 浮动原则）
+computer_use focus_app(<hermes_desktop_pid>)
+```
+
+守则：
+- 归还失败 → 记一句"焦点归还失败 <原因>"，**不阻塞**收尾/中止流程本身
+- computer_use MCP 不可用（session 过期/驱动升级断连）→ **跳过归还**，报告如实说明"焦点未归还"——Chrome 多进程 + 焦点返还延迟，无可靠终端兜底（2026-09-05 用户确认）
+- 从未抢过焦点的中止点（如巡检 STOP，Chrome 未被前置）→ 归还 = 聚焦 hermes desktop 本身，无害
+- 焦点归还调用不计入单账号 ≤15 扫描调用预算（会话级 1-2 次）
+- 归还后中途再需要浏览器 → `focus_app(chrome_pid)` 重新前置即可（CDP 免前台组不依赖焦点，cua 会话不受影响）
+
+**触发点**：①Step 0 任何 🛑 STOP（巡检 exit 1/2、browser_requires_setup、登录墙、grant 拒绝）②Step 1 批次纪律收尾 ③session-expired 整体中止 / window-lost-fatal 会话结束（§4 裁决）④Step 3 末（浏览器阶段结束、进 Step 4a 前）⑤Step 7 报告完成。
+
+---
+
+## 6. 已知 trap（不试）
 
 - `computer_use key` 做 timeline 翻页/滚动 → `background_unavailable`（Chrome_WidgetWin_1 拒绝，无解，绕开）
 - prepare 后直接 navigate → `browser_mutation_unproven`；navigate 后直接 mutation → `browser_verification_required`
