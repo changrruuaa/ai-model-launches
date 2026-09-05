@@ -5,7 +5,7 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.1.1
+version: 1.2.0
 author: chang
 license: MIT
 platforms: [windows]
@@ -91,7 +91,15 @@ metadata:
 1. 读 config 注入值。`base_dir` 为空 → 追问用户（Windows 路径），并提示写入 `~/.hermes/config.yaml` 的 `skills.config.base_dir` 持久化（否则产物落临时目录且每次都问）。`notion_enabled=true` 且 `notion_parent_page_id` 为空 → 同样追问
 2. `python "${HERMES_SKILL_DIR}\scripts\check_env.py"` → 退出码 12 → 按提示 `python -m pip install <缺失包>` 后重试
 3. Notion 启用时：`python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --check-auth` → exit 3 = 未配置 token → **静默降级为仅本地**（notion_sync 全程跳过，不提示不阻塞）。配置方法（一次性，用户手动）：管理员/普通终端执行 `setx NOTION_TOKEN "ntn_你的token"` 后**重启 Hermes desktop**（子进程继承用户环境变量）
-4. cua attach + 登录态检查（**先导航、后验登录态**——cua_driver 在非 x.com 页面无法返回登录状态；实测工具名，细则见 cua-recipes.md）：
+4. Chrome 实例巡检（工具级细则见 `references\scan-failure-modes.md` H 章）：
+   ```
+   python "%USERPROFILE%\.hermes\tools\chrome_inspect.py"     # 机器级工具，未部署则跳过本步
+   ```
+   - 未部署判据：stdout 无 JSON 且 stderr 报 can't open file → 跳过本步直接第 5 步（不阻塞；亦可用第 2 步 check_env 输出的 `chrome_inspector` 字段预判。工具自身 exit 0/1/2 均带 stdout JSON，不会与未部署混淆）
+   - exit 0 → 记录 `summary.cdp_ready`（pid/port）作 attach 佐证，继续第 5 步
+   - exit 1 / 2 → 🛑 STOP：把 `summary.action_hint` 原样报告用户；**禁止自行拉起/重启浏览器、禁止启动无头 Chrome**
+   - exit 3 → 报告 stderr 错误内容；跳过巡检继续主流程（不重试巡检）
+5. cua attach + 登录态检查（**先导航、后验登录态**——cua_driver 在非 x.com 页面无法返回登录状态；实测工具名，细则见 cua-recipes.md）：
    ```
    computer_use list_apps                                        # 找 chrome.exe pid
    computer_use list_windows(pid)                                # cheap：is_on_screen && !minimized
@@ -101,14 +109,16 @@ metadata:
    # terminal sleep 2-3
    computer_use cua_browser_state(...)                           # ⚠️ 之后才判登录态
    ```
-5. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
-6. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
+6. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
+7. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
    - `browser_requires_setup: no owned endpoint` → 🛑 STOP，不 fallback 不重试
    - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**
    - `wrong_target_refused` → `focus_app` 切焦点后重试 1 次；仍失败 → 建议用户只保留单一 X home 标签页后重跑
    - `browser_mutation_unproven` / `browser_verification_required` → 先做一次 fresh `cua_browser_state` 再重试原操作
-   - `this session has ended` / 跨会话 MCP 断连 → 每个新 agent process 都要走一遍第 4 步完整 re-attach
+   - `this session has ended` / 跨会话 MCP 断连 → 每个新 agent process 都要走一遍第 5 步完整 re-attach
    - 窗口不在最上层/被遮挡/Chrome 休眠 → **流程 W**（见下）
+   - 巡检 `summary.headless_instances` 非空 → 提示用户自行关闭残留无头实例（**不自动杀进程**）
+   - Chrome 实例/端口状态拿不准 → 先巡检（第 4 步，H 章）再裁决；**禁开 Chrome 内置任务管理器、禁无头 fallback**
    - ⚠️ cua-driver 升级（`hermes computer-use install --upgrade`）会断当前 MCP session → 只允许在无扫描进行时升级，升级后重启 Hermes desktop
 
 ### Step 1 — 厂商主账号扫描（分批会话）

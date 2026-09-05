@@ -26,6 +26,8 @@
 
 ## 1. attach + 登录态检查（Step 0，顺序不可颠倒）
 
+前置：`python "%USERPROFILE%\.hermes\tools\chrome_inspect.py"` 巡检 Chrome 实例（细则见 scan-failure-modes.md H 章；工具未部署则跳过）。
+
 ```
 computer_use list_apps                                     # 找 chrome.exe pid
 computer_use list_windows(pid)                             # cheap：{title, window_id, bounds, is_on_screen, minimized}

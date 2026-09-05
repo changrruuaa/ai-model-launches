@@ -102,3 +102,27 @@ run 20260904-142109：consent 未授权 → timeline SKIPPED → agent 用 web_s
 | `browser_verification_required` | navigate 后直接 mutation | 先 fresh snapshot |
 | `background_unavailable` | key 后台投递被 Chrome 拒 | 换 `cua_browser_pointer` |
 | `Connection closed`（MCP） | driver 升级/会话过期 | 重启 Hermes desktop / 新会话 re-attach |
+| 巡检 exit 1 / 2 | Chrome 无可用 CDP 端口 / 未运行 | 🛑 STOP + `action_hint` 报告用户（H 章） |
+| 巡检 exit 3 | 巡检脚本内部错误 | 报告 stderr 内容；跳过巡检不阻塞主流程 |
+
+## H. Chrome 进程/端口巡检（chrome_inspect.py，机器级工具）
+
+> 背景：任务管理器/PowerShell 进程列表看不到 CDP 端口与 profile 归属；Chrome 内置任务管理器窗口在进程/窗口枚举中与普通 Chrome 无差别、无法识别——两条路都不可用。唯一正解 = 巡检脚本（工具细则与输出 schema 见 `%USERPROFILE%\.hermes\tools\chrome_inspect_README.md`，部署时随脚本一并复制）。
+
+**🚫 两条禁令（违反 = 本 run 无效）**：
+1. 禁止打开 Chrome 内置任务管理器（Shift+Esc）查进程/端口
+2. 禁止 fallback 启动无头 Chrome 获取用户 cookie/登录态（headless 必无用户登录态）
+
+**调用**：`python "%USERPROFILE%\.hermes\tools\chrome_inspect.py"`（机器级路径；未部署判据：stdout 无 JSON 且 stderr 报 can't open file——工具自身 exit 0/1/2 均带 stdout JSON，可区分——此时跳过巡检，不阻塞）
+
+**裁决表**：
+
+| 巡检结果 | 判定 | 动作 |
+|---|---|---|
+| exit 0 + `summary.cdp_ready` | 存在 CDP 就绪、非 headless 实例 | 继续正常 attach 流程；pid/port 作佐证 |
+| exit 1 | 有 Chrome 但无可用非 headless CDP 端口（用户日常 Chrome 默认无调试端口，属预期） | 🛑 STOP，把 `action_hint` 报告用户 |
+| exit 1 + `headless_instances` 非空 | 存在残留无头实例 | 提示用户自行关闭（**不自动杀进程**）；仍 STOP |
+| exit 2 | 无 chrome.exe 运行 | 🛑 STOP，请用户先打开 Chrome；**不自行拉起浏览器** |
+| exit 3 | 脚本内部错误 | 报告 stderr 内容；跳过巡检不阻塞主流程 |
+
+**已知死路（2026-09 实查，不试）**：`--load-extension`（Chrome 137 起 branded 版移除）、CDP `Extensions.loadUnpacked`（仅会话级，重启失效）、本地 CRX 注册表 path（Chrome 33 起移除）、自托管 update_url 强装（Windows 需域加入/Chrome Enterprise Core）。巡检脚本也拿不到 cookie 内容——登录态只来自用户日常 Chrome 的 attach 主路径。

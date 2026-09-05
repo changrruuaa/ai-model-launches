@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -30,10 +31,13 @@ def main() -> int:
             optional_state[pip_name] = "ok"
         except ImportError:
             optional_state[pip_name] = "missing"
+    inspector = Path(os.environ.get("USERPROFILE", ""), ".hermes", "tools", "chrome_inspect.py")
     print(json.dumps({
         "python": sys.version.split()[0],
         "missing_required": missing,
         "optional": optional_state,
+        "chrome_inspector": "ok" if inspector.is_file()
+        else "not deployed (info only; Step 0 巡检将跳过)",
     }, ensure_ascii=False))
     if missing:
         print("install: python -m pip install " + " ".join(missing))
