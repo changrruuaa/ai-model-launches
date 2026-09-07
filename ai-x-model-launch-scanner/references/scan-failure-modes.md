@@ -111,6 +111,8 @@ run 20260904-142109：consent 未授权 → timeline SKIPPED → agent 用 web_s
 ### G8. cua-driver daemon 生命周期与手动 grant attach（2026-09-05 实测）
 
 > 背景：hermes 拉起的 daemon **默认不传 `--grant`**，attach 用户日常 Chrome 会被 `browser_existing_profile_not_granted` 拒。要换成带 grant 的 daemon 无法原地替换（杀不死），只能在重启 Hermes desktop 后的空窗手动拉起。
+>
+> **permission-mode 说明（2026-09-05）**：daemon 取值 **standard**（默认，逐动作审批——数字员工无人值守实测不可用，2026-09-05 弹批准问题根因）/ **bounded**（最小权限，capability manifest 格式未文档化，未来可切）/ **unrestricted**（免审批，当前选择：个人机 + 自有 agent）。**mode 随 daemon 进程固定**——重启 Hermes desktop 后若让 hermes 自己拉起 daemon（无 flag）会回到 standard 逐次审批，必须用本脚本拉起。
 
 - **hermes 拉起的 daemon 杀不死**：`Stop-Process -Name cua-driver -Force` → hermes 立刻拉起新的；`taskkill /F /PID` → 权限不足（进程 token 在不同 session）；`psutil.Process(pid).kill()` → 调用方卡死 300s（复活机制死循环/死锁）。任何"stop + restart daemon"路径都不可行
 - **唯一换血窗口**：重启 Hermes desktop → daemon **不会**被自动拉起 → 此刻手动拉起（见下）
@@ -118,12 +120,12 @@ run 20260904-142109：consent 未授权 → timeline SKIPPED → agent 用 web_s
 
 **四步流程**（一键脚本：仓库 `tools\cua-attach-chrome.ps1` → 部署 `copy tools\cua-attach-chrome.ps1 "%USERPROFILE%\cua-attach-chrome.ps1"`）：
 
-1. 起 daemon（`--grant` 是 **daemon 进程级 flag，不经过 config.yaml 检查**）：
+1. 起 daemon（`--grant` 是 **daemon 进程级 flag，不经过 config.yaml 检查**；`--dangerously-bypass-approvals` 自选 unrestricted 免审批，mode 随进程固定）：
    ```
-   Start-Process -FilePath "$env:USERPROFILE\.cua-driver\packages\current\cua-driver.exe" -ArgumentList "serve","--grant","existing-profile","--permission-mode","standard" -WindowStyle Hidden
+   Start-Process -FilePath "$env:USERPROFILE\.cua-driver\packages\current\cua-driver.exe" -ArgumentList "serve","--grant","existing-profile","--dangerously-bypass-approvals" -WindowStyle Hidden
    # 等 3-4s daemon listening
    ```
-2. 验证带 grant：`Get-CimInstance Win32_Process` 查 cua-driver CommandLine，应含 `serve --grant existing-profile --permission-mode standard`
+2. 验证带 grant + 免审批：`Get-CimInstance Win32_Process` 查 cua-driver CommandLine，应含 `serve --grant existing-profile --dangerously-bypass-approvals`
 3. 找已登录 Chrome（必须有可见窗口）：`Get-Process chrome | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1` → PID/HWND
 4. attach 直调 CLI（python stdin 发 JSON，避开 PowerShell 转义坑）：`cua-driver.exe call browser_prepare`，stdin `{"pid":<pid>,"window_id":<hwnd>,"strategy":{"kind":"existing_profile"}}` → 预期 `{"status":"ok","action":"attached_existing_profile",...,"endpoint_ownership":{"method":"devtools_active_ports_file",...}}`
 
