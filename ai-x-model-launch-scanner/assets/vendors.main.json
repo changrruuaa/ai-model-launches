@@ -1,6 +1,6 @@
 {
   "stage": "main",
-  "comment": "14 大厂主账号；公司名用于报告分组与 Notion Company 字段。来源：搜索目标厂家清单-2026-09-02.md",
+  "comment": "14 大厂主账号；公司名用于报告分组与 Notion Company 字段。来源：搜索目标厂家清单-2026-09-02.md。handle 无 @ 前缀（URL 拼接用，禁带 @ 导航——会被 X 解释成搜索）",
   "accounts": [
     {"handle": "OpenAI", "company": "OpenAI"},
     {"handle": "claudeai", "company": "Anthropic"},

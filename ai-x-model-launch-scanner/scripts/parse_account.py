@@ -56,6 +56,9 @@ def validate(raw: dict) -> list[str]:
     for key in ("handle", "company"):
         if key not in raw:
             errs.append(f"missing top-level key '{key}'")
+    if "handle" in raw and "@" in str(raw["handle"]):
+        errs.append(f"top-level handle '{raw['handle']}' 含 @ —— profile URL 格式约束要求 handle 无 @"
+                    f"（带 @ 的 URL 会被 X 解释成搜索 fallback，2026-09-05 实测）；请改为无 @ 形式后重跑")
     tweets = tweets_list(raw)
     if tweets is None:
         errs.append(f"missing top-level key 'tweets' (aliases: {', '.join(TWEETS_ALIASES)})")

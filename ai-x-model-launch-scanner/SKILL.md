@@ -5,7 +5,7 @@ description: >-
   关键词预筛 + LLM 分类识别模型发布，web_search 交叉验证后写入本地 Markdown/JSON
   与 Notion。触发词：扫描 AI 模型发布 / 抓取 AI 公司推文 / 按厂家清单扫一遍 /
   跑模型扫描 / "scan AI model launches" / "近 N 天有什么新模型"。
-version: 1.1.1
+version: 1.3.2
 author: chang
 license: MIT
 platforms: [windows]
@@ -51,6 +51,7 @@ metadata:
 
 **约束声明**（首次对话须告知用户）：
 - 扫描期间请保持 Chrome 在**主屏幕最上层**，不要最小化/遮挡；被切走会自动前置恢复（流程 W），持续遮挡会中止报错
+- 扫描结束或中止时会自动把窗口焦点**归还 hermes desktop**（焦点归还，见 `references\cua-recipes.md` §5；computer_use 断连时无法归还，报告会如实说明）
 - 建议用户**最大化 Chrome**（增大 pointer viewport 预算）并**关闭浏览器自动翻译**（弹窗会挡住 X tab）
 - 需要用户 Chrome 已登录 X（本 skill 不导 cookie、不代登录）
 - 上下文保护：每个扫描会话只扫 3 个账号（config `session_batch_size`），批次结束换新会话 `--resume` 续扫
@@ -91,7 +92,15 @@ metadata:
 1. 读 config 注入值。`base_dir` 为空 → 追问用户（Windows 路径），并提示写入 `~/.hermes/config.yaml` 的 `skills.config.base_dir` 持久化（否则产物落临时目录且每次都问）。`notion_enabled=true` 且 `notion_parent_page_id` 为空 → 同样追问
 2. `python "${HERMES_SKILL_DIR}\scripts\check_env.py"` → 退出码 12 → 按提示 `python -m pip install <缺失包>` 后重试
 3. Notion 启用时：`python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --check-auth` → exit 3 = 未配置 token → **静默降级为仅本地**（notion_sync 全程跳过，不提示不阻塞）。配置方法（一次性，用户手动）：管理员/普通终端执行 `setx NOTION_TOKEN "ntn_你的token"` 后**重启 Hermes desktop**（子进程继承用户环境变量）
-4. cua attach + 登录态检查（**先导航、后验登录态**——cua_driver 在非 x.com 页面无法返回登录状态；实测工具名，细则见 cua-recipes.md）：
+4. Chrome 实例巡检（工具级细则见 `references\scan-failure-modes.md` H 章）：
+   ```
+   python "%USERPROFILE%\.hermes\tools\chrome_inspect.py"     # 机器级工具，未部署则跳过本步
+   ```
+   - 未部署判据：stdout 无 JSON 且 stderr 报 can't open file → 跳过本步直接第 5 步（不阻塞；亦可用第 2 步 check_env 输出的 `chrome_inspector` 字段预判。工具自身 exit 0/1/2 均带 stdout JSON，不会与未部署混淆）
+   - exit 0 → 记录 `summary.cdp_ready`（pid/port）作 attach 佐证，继续第 5 步
+   - exit 1 / 2 → 🛑 STOP：把 `summary.action_hint` 原样报告用户；**禁止自行拉起/重启浏览器、禁止启动无头 Chrome**
+   - exit 3 → 报告 stderr 错误内容；跳过巡检继续主流程（不重试巡检）
+5. cua attach + 登录态检查（**先导航、后验登录态**——cua_driver 在非 x.com 页面无法返回登录状态；实测工具名，细则见 cua-recipes.md）：
    ```
    computer_use list_apps                                        # 找 chrome.exe pid
    computer_use list_windows(pid)                                # cheap：is_on_screen && !minimized
@@ -101,14 +110,17 @@ metadata:
    # terminal sleep 2-3
    computer_use cua_browser_state(...)                           # ⚠️ 之后才判登录态
    ```
-5. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
-6. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
+6. **登录态判定 = 只看跳转结果 URL**：`x.com/home` → 已登录；强制停在/跳回 `x.com`（登录页）→ 🛑 STOP，请用户在 Chrome 登录 X 后重跑。**不代登录**
+7. **错误分支（硬规则，错误码为 2026-09-04 实测名）**：
+   - **通用规则**：任何 🛑 STOP / 会话结束前先执行**焦点归还**（`references\cua-recipes.md` §5；computer_use 不可用则跳过并如实说明）
    - `browser_requires_setup: no owned endpoint` → 🛑 STOP，不 fallback 不重试
-   - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**
+   - `browser_existing_profile_not_granted` / `browser_consent_required` → **征得用户明确同意后**可代写 `~/.hermes/config.yaml` 的 `computer_use.grant_existing_profile: true`（或用户手改）；**改完必须重启 Hermes desktop 才生效**；重启后 daemon 不会被自动拉起 → 可按 `references\scan-failure-modes.md` G8 自启带 `--grant` 的 daemon（进程级授权，一键脚本 `%USERPROFILE%\cua-attach-chrome.ps1`；脚本起的 daemon 为 unrestricted 免审批模式——若 computer_use 每步都弹批准 = 当前 daemon 未带 bypass flag，按 G8 重拉）
    - `wrong_target_refused` → `focus_app` 切焦点后重试 1 次；仍失败 → 建议用户只保留单一 X home 标签页后重跑
    - `browser_mutation_unproven` / `browser_verification_required` → 先做一次 fresh `cua_browser_state` 再重试原操作
-   - `this session has ended` / 跨会话 MCP 断连 → 每个新 agent process 都要走一遍第 4 步完整 re-attach
+   - `this session has ended` / 跨会话 MCP 断连 → 每个新 agent process 都要走一遍第 5 步完整 re-attach
    - 窗口不在最上层/被遮挡/Chrome 休眠 → **流程 W**（见下）
+   - 巡检 `summary.headless_instances` 非空 → 提示用户自行关闭残留无头实例（**不自动杀进程**）
+   - Chrome 实例/端口状态拿不准 → 先巡检（第 4 步，H 章）再裁决；**禁开 Chrome 内置任务管理器、禁无头 fallback**
    - ⚠️ cua-driver 升级（`hermes computer-use install --upgrade`）会断当前 MCP session → 只允许在无扫描进行时升级，升级后重启 Hermes desktop
 
 ### Step 1 — 厂商主账号扫描（分批会话）
@@ -118,12 +130,13 @@ metadata:
 2. 对批次内每账号执行 recipe（细则与 trap 见 `references\cua-recipes.md`）：
    ```
    computer_use focus_app(pid)                                            # 失败 → 流程 W
-   computer_use cua_browser_navigate(url="https://x.com/<handle>", ...)   # 等 terminal sleep 2-3
+   computer_use cua_browser_navigate(url="https://x.com/<handle>", ...)   # ⚠️ handle 无 @（带 @/经搜索框输入 → x.com/search?q=<handle>，2026-09-05 实测）；等 terminal sleep 2-3
    computer_use cua_browser_state(...)   # snapshot：AX tree（status_id href / engagement aria-label / photo link / time）+ 可读文本 + "Pinned"/"置顶"标记
    # 时间窗未覆盖 → 滚动一轮再来：
    computer_use cua_browser_pointer(x, y, delta_y=2000~4000)   # ⚠️ 唯一滚动路径；mutation 前必须 fresh state
    # terminal sleep 2-4 → cua_browser_state(...)（只提取新增 status_id）
    ```
+   - **URL 格式自愈**：snapshot 结果 URL 是 `x.com/search?q=...`（搜索 fallback 误入）→ 不进流程 W（窗口没问题，属 URL 格式错误）→ 立即用 `https://x.com/<handle>`（无 @）re-navigate，≤2 次（计 per-account 重试预算）
    - **时间窗全覆盖是硬要求**：终止条件 = 本轮最老一条推文 `created_at < since`，或 R=4 轮上限。宁可多滚，不得提前收手
    - **增量提取**：维护已见 status_id 集合，每轮只提取新增，追加进 raw JSON——也是流程 W 恢复后续扫的幂等基础
    - **滚动注意**：`delta_y` 建议 2000-4000（太小 X 不触发 IntersectionObserver 加载下一批）；`to_x/to_y` 仅用于 drag；置顶带视频推文会独占 ~300 节点 viewport 预算，必须滚动才能触发后续加载
@@ -137,13 +150,13 @@ metadata:
    ```
    然后 `python "${HERMES_SKILL_DIR}\scripts\parse_account.py" --base-dir <base_dir> --run-id <run_id> <handle>`
    → stdout 一行 `@OpenAI ok rounds=2 fetched=12 in_window=3 pinned=1`。exit 2 → 按提示修 raw 文件一次重跑；再失败 → `--mark-failed parse-failed`
-4. 失败标 `empty / rate-limited / nav-timeout / session-expired / parse-failed / window-lost-fatal` 入 run_report；每账号 ≤2 次重试；任一 `session-expired` → 整体中止
-5. **批次纪律**：每会话 ≤ `session_batch_size`（默认 3）账号且累计滚动轮数 ≤6；达到即收尾本会话，换新会话从第 1 步 `--resume` 续扫
+4. 失败标 `empty / rate-limited / nav-timeout / session-expired / parse-failed / window-lost-fatal` 入 run_report；每账号 ≤2 次重试；任一 `session-expired` → 整体中止（中止时执行**焦点归还**）
+5. **批次纪律**：每会话 ≤ `session_batch_size`（默认 3）账号且累计滚动轮数 ≤6；达到即收尾本会话，换新会话从第 1 步 `--resume` 续扫；收尾本会话时执行**焦点归还**（`references\cua-recipes.md` §5）
 
 ### Step 2 — 详情页深度抓取（≤ 5 min）
 
 1. `python "${HERMES_SKILL_DIR}\scripts\prefilter.py" --base-dir <base_dir> --run-id <run_id>` → `candidates.json`
-2. 逐候选（每会话 ≤15 个）：`cua_browser_navigate("https://x.com/<handle>/status/<id>")` + fresh `cua_browser_state`（详情页不截断，解 B2）→ 落盘 `raw_detail_<id>.json`：`{"status_id","text_full","media","external_links"}`；浏览器异常 → 流程 W
+2. 逐候选（每会话 ≤15 个）：`cua_browser_navigate("https://x.com/<handle>/status/<id>")` + fresh `cua_browser_state`（详情页不截断，解 B2；URL 同样 handle **无 @**——带 @ 会进搜索 fallback）→ 落盘 `raw_detail_<id>.json`：`{"status_id","text_full","media","external_links"}`；浏览器异常 → 流程 W
 3. `python "${HERMES_SKILL_DIR}\scripts\merge_detail.py" --base-dir <base_dir> --run-id <run_id>` → `detail_tweets.json`
 4. 预算用尽 → 跳过剩余，不阻塞
 
@@ -151,6 +164,7 @@ metadata:
 
 `python "${HERMES_SKILL_DIR}\scripts\plan_scan.py" --stage thirdparty --base-dir <base_dir> --run-id <run_id>`
 然后对 @arena、@ArtificialAnlys 复用 Step 1 recipe（同会话同 tab，切账号 ≈3 calls）。标记 `is_third_party=true`（parse_account 自动）。
+浏览器阶段到此结束 → 执行**焦点归还**（`references\cua-recipes.md` §5）；此后如需再用浏览器（如 Step 6 可选截图）先 `focus_app` 重新前置 Chrome。
 ### Step 4a — LLM 分类（先于 4b/5/6）
 
 `python "${HERMES_SKILL_DIR}\scripts\classify.py" --base-dir <base_dir> --run-id <run_id>`
@@ -186,11 +200,12 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 - **write_local 必须先于 notion_sync**——Notion 失败不吃掉本地结果
 - 报告：`<base_dir>\reports\YYYY-MM-DD-model-launches.md`（同日重跑 -2 后缀不覆盖）
 - Notion 自动建库/去重/更新（细则 `references\notion-schema.md`）；`object_not_found` → 用户在父页面 Connections 添加 integration
+- 报告完成后执行**焦点归还**（`references\cua-recipes.md` §5；computer_use 不可用则如实说明"焦点未归还"）
 - 最后按 Verification 模板汇报
 
 ### 流程 W — 窗口丢失容错（Steps 1/2/3 所有浏览器调用的错误路径）
 
-**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**）；snapshot 的 title/URL 与预期 x.com/<handle> 不符；连续 2 次调用返回空。
+**触发信号**：调用报错（ref stale / target not found / window not found / "not a live binding" / CDP timeout / **Chrome 后台或低功耗休眠导致 CDP 断开**）；snapshot 的 title/URL 与预期 x.com/<handle> 不符（结果 URL 为 `x.com/search?q=...` 除外——走 URL 格式自愈，不进 W）；连续 2 次调用返回空。
 
 **恢复（≤2 次，每次）**：
 1. `computer_use list_apps` → 重新确认 chrome.exe pid
@@ -200,7 +215,7 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 
 **复验**：`terminal sleep 2` → `list_windows` 复验；通过但下个实际调用仍失败 → 升级 `cua_browser_state` 复验。
 
-**裁决**：通过 → 记 incident **继续当前账号**（增量去重幂等）；2 次失败 → **立即停**：标 `window-lost-fatal`、结束会话、报错"请将 Chrome 置于主屏幕最上层后重跑，自动 --resume 续扫"；不做第 3 次。会话内 ≥2 账号 fatal → run 中止。
+**裁决**：通过 → 记 incident **继续当前账号**（增量去重幂等）；2 次失败 → **立即停**：标 `window-lost-fatal`、结束会话、报错"请将 Chrome 置于主屏幕最上层后重跑，自动 --resume 续扫"；不做第 3 次。会话内 ≥2 账号 fatal → run 中止。结束会话/run 中止时执行**焦点归还**（`references\cua-recipes.md` §5）。
 
 ## Pitfalls
 
@@ -216,10 +231,11 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 10. Notion `object_not_found` → 父页面没 Share 给 integration → Connections 添加
 11. **Windows 编码**：落盘 JSON 强制 UTF-8 无 BOM；脚本读写显式 `encoding="utf-8"`；终端中文先 `PYTHONIOENCODING=utf-8`
 12. **上下文保护**：分批会话（默认 3 账号/会话、滚动 ≤6 轮）、即扫即弃、分类不混入扫描会话、>120 条切 --api、每条验证 ≤2 次搜索；压缩/中断后 `plan_scan.py --status --resume` 重新定位
-13. **窗口焦点**：cua_driver 对非主屏幕最上层窗口不可用 → 流程 W；恢复 ≤2 次，失败**立即报错**，绝不无限重试；复验用 `list_windows`（cheap）不用 `get_window_state`
+13. **窗口焦点**：cua_driver 对非主屏幕最上层窗口不可用 → 流程 W；恢复 ≤2 次，失败**立即报错**，绝不无限重试；复验用 `list_windows`（cheap）不用 `get_window_state`；扫描结束/中止时焦点归还 hermes desktop（`references\cua-recipes.md` §5）
 14. **登录态检查顺序**：非 x.com 页面拿不到登录态 → attach 后、W 恢复后**先导航到 x.com 再判登录态**；只看跳转 URL（`x.com/home`=已登录，`x.com` 登录页=未登录 → STOP，不代登录）
 15. **Chrome 自动翻译弹窗**会挡住 X tab → 引导用户关闭自动翻译或先手动关掉弹窗
 16. **置顶带视频推文独占 ~300 节点 viewport 预算**（X SPA 惰性加载）→ 不滚动就永远看不到后续推文，必须 scroll
+17. **profile URL 格式（2026-09-05 实测）**：账号定位一律 `cua_browser_navigate` 直达 `https://x.com/<handle>`——**handle 无 @**；带 @ 的路径或经 X 搜索框输入会被解释成 `x.com/search?q=<handle>` 搜索 fallback（**禁用搜索框/搜索页定位账号**）。检测结果 URL 是 `/search?q=` → 不进流程 W，立即用正确 URL re-navigate（≤2 次，计 per-account 重试）
 
 ## Verification
 
@@ -233,4 +249,4 @@ python "${HERMES_SKILL_DIR}\scripts\notion_sync.py" --base-dir <base_dir> --run-
 ⚠️ @deepseek_ai no-x-data —— 不代表该厂商没发布
 📄 报告：<base_dir>\reports\...  🖼️ images\（N 张）  🗃️ Notion：新增 a，更新 b
 ```
-- 断言：报告存在且含"无数据不等于没发布"段；`cross_checked.json` 的 launch 均带 `release_verified`（true/false/null）；本会话账号数 ≤ `session_batch_size`；**单账号总调用 ≤15**；raw 文件不含任何 web 来源字段
+- 断言：报告存在且含"无数据不等于没发布"段；`cross_checked.json` 的 launch 均带 `release_verified`（true/false/null）；本会话账号数 ≤ `session_batch_size`；**单账号总调用 ≤15**；raw 文件不含任何 web 来源字段；会话结束点已执行**焦点归还**（或记录失败/跳过原因）
