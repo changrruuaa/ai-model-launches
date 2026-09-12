@@ -4,11 +4,15 @@ __pycache__/
 .venv/
 venv/
 
+# Node
+node_modules/
+
 # Secrets & local runtime data (never commit)
 .secrets/
 *.session
 notion_token.txt
 .env
+ai-x-model-launch-scanner/config.user.yaml
 
 # Run outputs (live in base_dir, not in the repo)
 data/

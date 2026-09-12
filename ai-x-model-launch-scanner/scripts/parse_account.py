@@ -31,7 +31,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib import metrics_parse, models, timewin  # noqa: E402
 
-REQUIRED_TWEET = ("status_id", "text")
+# text 不在必填内:xscan 会发出纯图片/视频推文(text=""),是合法 timeline 数据,不应整文件拒收
+REQUIRED_TWEET = ("status_id",)
 FORBIDDEN_KEYS = ("external_sources", "external_refs", "web_search", "web_results",
                   "web_sources", "sources", "search_results")
 FORBIDDEN_RE = re.compile(r"external_sources|web_search|search_results|web_results|web_sources", re.IGNORECASE)
@@ -209,7 +210,7 @@ def main() -> int:
             "metrics": _tweet_metrics(t),
             "media": list(t.get("media") or []),
             "external_links": [],
-            "source": "cua-snapshot",
+            "source": "xscan-cdp",
         }
         # URLs in text -> external_links (strip trailing punctuation)
         tweet["external_links"] = [u.rstrip(").,;\"'!?")

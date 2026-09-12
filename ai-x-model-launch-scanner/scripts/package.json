@@ -1,0 +1,10 @@
+{
+  "name": "xscan-scripts",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ai-x-model-launch-scanner v2 browser layer (puppeteer-core). npm install 在本目录执行。",
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

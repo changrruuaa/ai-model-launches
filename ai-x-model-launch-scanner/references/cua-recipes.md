@@ -1,4 +1,9 @@
-# cua-driver 调用 recipe（2026-09-04 hermes desktop 实测版，cua-driver 0.23.2）
+# cua-driver 调用 recipe(2026-09-04 hermes desktop 实测版,cua-driver 0.23.2)
+
+> **⚠️ v2.0.0 起本文档降级为 fallback-only**:主路径已迁 `puppeteer-recipes.md`(xscan.mjs)。
+> 仅当 Step 1 选定 `browser_scheme=cua-driver`(9 级 fallback 链第 2 级)时才读本文。
+> 其中 **§0(API 前台分类)/ §4(流程 W)/ §5(焦点归还)为 cua 专属**;§2/§3 的通用经验
+> (URL 无 @、渲染等待、提取规则、raw schema)已镜像到 puppeteer-recipes.md,以那边为准。
 
 > 本文件是 SKILL.md Procedure 的工具级细则。所有签名与结论来自 2026-09-04 三轮 hermes 实测
 >（runs 20260904-142109 / 145545 / 153150，@OpenAI 单账号冒烟）+ hermes 端发现清单 D1-D16 / R1-R4。

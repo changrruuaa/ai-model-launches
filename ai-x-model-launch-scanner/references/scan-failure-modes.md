@@ -1,8 +1,12 @@
 # AI X-scan failure modes & workarounds（cua-driver 版继承）
 
-> **继承关系**：本文件源自 x-cua-driver-scanner（deleted 2026-09-02）→ ai-x-model-launch-scanner 旧版 → 本 skill。
-> 原 WSL/hermes 环境经验改写为 hermes desktop（Windows 原生）语境；**排除**所有"web_search 回退"路径（与本 skill"web_search 三禁"原则冲突），仅保留验证用途。
-> 实战来源：2026-09-01~03 三轮 run 实测（详见旧文件 provenance）。
+> **⚠️ v2.0.0 适用性标注**:主路径为 puppeteer-core(xscan.mjs)。**cua 专属章 = A2/A3、E、F、G2、G3、G8**(仅 browser_scheme=cua-driver fallback 时读);**通用章 = A1(CDP 超时,puppeteer 同走 CDP 仍可能)、B、C、D、G1(滚动参数精神)、G4(consent,cua only)、G5(登录墙)、G6(三禁)、G7(错误码,cua 部分)、H(巡检裁决表,puppeteer 直接复用)**。
+>
+> **xscan.mjs 退出码速查**(v2.0.0,细则见 puppeteer-recipes.md §4):0 ok / 2 登录墙(cookie 失效同表现) / 3 导航超时 / 4 空结果(含限流页,no-x-data) / 5 CDP 连接失败 / 7 连续零新增疑后台节流(勿最小化 shadow 窗口) / 8 handle 不可解析(no-x-data 勿重试)。
+>
+> **继承关系**:本文件源自 x-cua-driver-scanner(deleted 2026-09-02)→ ai-x-model-launch-scanner 旧版 → 本 skill。
+> 原 WSL/hermes 环境经验改写为 hermes desktop(Windows 原生)语境;**排除**所有"web_search 回退"路径(与本 skill"web_search 三禁"原则冲突),仅保留验证用途。
+> 实战来源:2026-09-01~03 三轮 run 实测(详见旧文件 provenance)。
 
 ## A. cua-driver / CDP failures
 

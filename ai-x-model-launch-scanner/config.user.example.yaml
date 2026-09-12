@@ -1,0 +1,50 @@
+# =====================================================================
+# ai-x-model-launch-scanner 长期约束文件(模板)
+# =====================================================================
+# 运行时真源 = 本 skill 目录下的 config.user.yaml(与 SKILL.md 同文件夹)。
+# 首跑自动从本模板生成;之后 Step 0 的全部探查结论与你的规范只存那一个文件:
+#   · 只对"文件里没有的键"追问,答案自动写回(下次运行直接复用,不再重复问)
+#   · 想改偏好:直接编辑 config.user.yaml 即可
+#   · 想让某项重新被问:删除该键(或整段)即可
+#   · probes: 段 = 探查存档(自动维护,带日期;删除即重探)
+# ⚠️ 重新部署 skill 到其它机器时保留 config.user.yaml(本模板之外的此文件不进 git)
+# =====================================================================
+
+scan:
+  base_dir: ""            # 必填。扫描数据与成品落地根目录(Windows 路径),如 D:\obs-mind\work\active\AI扫描
+  default_days: 7         # 默认时间窗口(自然日)
+  classify_mode: inline   # inline = 会话内免费分类 / api = 脚本调 Haiku(无人值守;需 ANTHROPIC_API_KEY)
+  session_batch_size: 3   # 每轮 xscan 调用的账号数(韧性参数;失败隔离用,可放宽到 7-14)
+  verify_web_search: true # 是否对 launch 条目做 web_search release date 验证(仅交互模式生效)
+
+notion:
+  enabled: true           # 是否写入 Notion;true 且无 token 时自动静默降级为仅本地
+  parent_page_id: ""      # Notion 父页面 ID(32 位 hex;页面需 Share 给 integration;留空 = 首跑追问)
+
+manuscript:
+  structure_rules:        # 文稿结构硬约束(Step 7 撰稿时优先生效)。
+                          # 留空(删除此键)= 首跑必问;用户回答"无"则写 false(用默认结构);
+                          # 有约束则原文照录,如:"先国产后海外;每条必须带 benchmark 段"
+  target_minutes: 3       # 成片时长目标(分钟,3-8)
+
+video:
+  enabled: true           # 是否产出视频(Step 9-11)
+  aspect: "16:9"          # 16:9(1920x1080)/ 9:16(1080x1920 竖屏)
+  card_style: ppt-reference  # 卡片风格;ppt-reference = assets/style-reference.png 的默认主题;可写自定义风格描述
+
+audio:
+  voice: ""               # edge-tts 音色,如 zh-CN-XiaoxiaoNeural;留空 = 无旁白(字幕卡+可选 BGM)
+  bgm_path: ""            # BGM 音频文件路径;留空 = 无 BGM
+
+imagegen:
+  prompt_skill: ""        # 生图提示词优化 skill 名(用户已有则填名称,如 GPT-Image2-Skill);
+                          # 留空 = 首跑追问,没有则自动 grsai skill download(只下 skill 本体)
+  cn_model: auto          # 生图模型区域: auto = 读 ~/.grsai/config.json 自动判定 / cn / global
+  no_negative_prompts:    # 国内模型时必须 true:提示词禁用"负面提示词"写法
+  style_ref: assets/style-reference.png  # 卡片与插画对齐的风格基准图
+
+run:
+  unattended: false       # true = 定时任务/无人值守:跳过 Step 6/8 倒计时,Step 10 不自动合成(等"继续")
+
+probes: {}                # 探查存档(自动写):{"edge-tts": {"ok": true, "at": "2026-09-11"},
+                          #  "image_prompt_skill": {...}, "ppt_master": {...}, "grsai_skill": {...}}

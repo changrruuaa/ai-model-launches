@@ -1,7 +1,7 @@
 """grab_images.py — Step 6: download tweet media (pbs.twimg.com is public, no browser needed).
 
 Reads cross_checked.json (launches + signals), downloads media[] to images/<tweet_id>_<n>.<ext>.
---todo: only write screenshots_todo.json (candidates for optional cua-driver card screenshots).
+--todo: only write screenshots_todo.json (candidates for optional xscan card screenshots).
 """
 from __future__ import annotations
 
